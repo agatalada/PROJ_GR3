@@ -1,0 +1,79 @@
+import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
+
+# Załaduj zestaw danych Fashion MNIST
+fashion_mnist = tf.keras.datasets.fashion_mnist
+(X_train, y_train), (X_val, y_val) = fashion_mnist.load_data()
+
+# Normalizacja danych (zmiana zakresu pikseli z 0-255 na 0-1)
+X_val = X_val.astype('float32') / 255.0
+
+# Etykiety klas
+class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+               'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+
+# Konwersja etykiet na one-hot encoding
+y_val_one_hot = tf.keras.utils.to_categorical(y_val, len(class_names))
+
+# Budowanie modelu MLP
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Flatten, Dense
+
+model = Sequential()
+model.add(Flatten(input_shape=(28, 28)))  # Warstwa wejściowa
+model.add(Dense(128, activation='relu'))  # Ukryta warstwa z 128 neuronami
+model.add(Dense(10, activation='softmax'))  # Warstwa wyjściowa (10 klas)
+
+# Kompilowanie modelu
+model.compile(optimizer='adam',
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Trening modelu (tutaj możesz załadować model jeśli już wytrenowany)
+model.fit(X_train.astype('float32') / 255.0, 
+          tf.keras.utils.to_categorical(y_train), 
+          epochs=10, batch_size=256, verbose=1)
+
+# Klasyfikacja obrazów ze zbioru walidacyjnego
+y_val_pred = model.predict(X_val)
+
+# Interaktywny system do przewijania zdjęć
+class ImageViewer:
+    def __init__(self, predictions, true_labels, images):
+        self.predictions = predictions
+        self.true_labels = true_labels
+        self.images = images
+        self.index = 0
+
+        # Rysowanie pierwszego obrazu
+        self.fig, self.ax = plt.subplots(figsize=(6, 4))
+        plt.subplots_adjust(bottom=0.2)
+
+        self.im = self.ax.imshow(self.images[self.index], cmap=plt.cm.binary)
+        self.pred_text = self.ax.set_title(self._get_image_title(self.index))
+
+        # Przyciski "Następny"
+        ax_next = plt.axes([0.8, 0.05, 0.1, 0.075])
+        self.btn_next = Button(ax_next, 'Następny')
+        self.btn_next.on_clicked(self.next_image)
+
+        plt.show()
+
+    def _get_image_title(self, i):
+        predicted_label = np.argmax(self.predictions[i])
+        true_value = self.true_labels[i]
+        return f"Przewidywane: {class_names[predicted_label]}, Prawdziwe: {class_names[true_value]}"
+
+    def update_image(self):
+        self.im.set_data(self.images[self.index])
+        self.pred_text.set_text(self._get_image_title(self.index))
+        self.fig.canvas.draw()
+
+    def next_image(self, event):
+        self.index = (self.index + 1) % len(self.images)
+        self.update_image()
+
+# Uruchomienie ImageViewer
+viewer = ImageViewer(y_val_pred, y_val, X_val)
