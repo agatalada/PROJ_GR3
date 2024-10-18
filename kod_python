@@ -31,7 +31,7 @@ model.compile(optimizer='adam',
               loss='categorical_crossentropy',
               metrics=['accuracy'])
 
-# Trening modelu (tutaj możesz załadować model jeśli już wytrenowany)
+# Trening modelu (tutaj załadujemy model jeśli już wytrenowany)
 model.fit(X_train.astype('float32') / 255.0, 
           tf.keras.utils.to_categorical(y_train), 
           epochs=10, batch_size=256, verbose=1)
